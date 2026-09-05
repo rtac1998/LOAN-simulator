@@ -451,6 +451,7 @@ const CONFIG = {
   addStep:100,        // ＋を押したときに現在の頭金に足す額（万円）
   ratioCaution:30,
   ratioWarn:35,
+  bonusRatioWarn:40,  // ボーナス返済比率がこれを超えたら警告（金融機関の一般的な上限目安）
   deduction:{
     rate:0.7,         // 控除率（％）
     minYears:10,      // 控除の適用に必要な返済期間（年）
@@ -563,7 +564,7 @@ function deductionOf(sched, v, share){
   // いずれか小さい方まで。諸費用をローンに含めた分は対象外。
   // 借入限度額はお一人ずつに適用。取得対価は持分割合に応じた額まで。
   const sh = share === undefined ? 1 : share;
-  const cap = Math.min(limitMan * 10000, (v.price * sh) || Infinity);
+  const cap = Math.min(limitMan * 10000, v.price * sh);
   let reason = '';
   if(v.quake === 'none') reason = 'quake';          // 旧耐震で耐震基準適合証明書等なし
   else if(v.loan > 0 && v.years < CONFIG.deduction.minYears) reason = 'term';  // 返済期間10年未満
@@ -723,10 +724,10 @@ function render(){
   $('monthly').textContent = yen(monthly);
   if($('useBonus').checked){
     const pct = (s.bonusRatio*100).toFixed(0);
-    $('bonusHint').className = 'hint' + (s.bonusClamped || s.bonusRatio > CONFIG.bonusRatioWarn ? ' warn' : '');
+    $('bonusHint').className = 'hint' + (s.bonusClamped || s.bonusRatio*100 > CONFIG.bonusRatioWarn ? ' warn' : '');
     $('bonusHint').textContent = s.bonusClamped
       ? 'ご入力額が大きすぎるため、お借入額の全額をボーナス返済分として計算しています。金額を下げてください。'
-      : s.bonusRatio > CONFIG.bonusRatioWarn
+      : s.bonusRatio*100 > CONFIG.bonusRatioWarn
         ? 'ボーナス返済分がお借入額の' + pct + '％です。金融機関の上限（一般に40〜50％）を超える可能性があります。'
         : '年2回・6か月ごとのお支払いとして計算します。ボーナス返済分はお借入額の' + pct + '％です。';
   }
