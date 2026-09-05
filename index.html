@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#1B3A5C">
+<title>住宅ローン返済シミュレーション</title>
+<style>
+:root{
+  --ai:#1B3A5C; --ai-light:#2E5C86;
+  --paper:#FBFAF7; --paper-2:#F2EFE8;
+  --ink:#14202B; --ink-3:#5C6B78;
+  --asagi:#4A8F9E; --shu:#A8463A; --rule:#D9D3C7;
+  --mincho:"Hiragino Mincho ProN","Yu Mincho","YuMincho",serif;
+  --gothic:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:var(--gothic);font-size:16px;line-height:1.7;
+  -webkit-text-size-adjust:100%;
+  padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.wrap{max-width:1120px;margin:0 auto;padding:0 18px 60px}
+
+.masthead{
+  border-bottom:2px solid var(--ai);padding:22px 0 12px;margin-bottom:24px;
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.masthead h1{font-family:var(--mincho);font-weight:600;font-size:23px;letter-spacing:.05em;margin:0}
+.actions{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+
+.cols{display:grid;grid-template-columns:1fr;gap:34px;align-items:start}
+@media(min-width:820px){.cols{grid-template-columns:340px 1fr;gap:44px}}
+
+.panel h2,.result h2{
+  font-family:var(--mincho);font-size:16px;font-weight:600;letter-spacing:.08em;
+  margin:0 0 14px;padding-bottom:7px;border-bottom:1px solid var(--rule);
+}
+.result h2.withadd{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.field{margin-bottom:16px}
+.sep{border:none;border-top:1px solid var(--rule);margin:22px 0 18px}
+.field > label{display:block;font-size:14px;color:var(--ink-3);margin-bottom:6px}
+.inputline{display:flex;align-items:center;gap:8px}
+input[type=number]{
+  font:inherit;font-size:17px;color:var(--ink);background:#fff;
+  border:1px solid var(--rule);border-radius:6px;
+  padding:11px 12px;width:100%;min-width:0;min-height:48px;
+  font-variant-numeric:tabular-nums;text-align:right;-moz-appearance:textfield;
+}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input:focus-visible,button:focus-visible{outline:2px solid var(--asagi);outline-offset:1px}
+.unit{font-size:14px;color:var(--ink-3);white-space:nowrap}
+
+.checkline{display:flex;align-items:center;gap:9px;min-height:46px;font-size:14.5px;cursor:pointer}
+.checkline input{width:22px;height:22px;flex:none;accent-color:var(--ai);margin:0}
+.checkpair{display:flex;gap:8px 20px;flex-wrap:wrap}
+.checkpair .checkline{flex:0 1 auto;white-space:nowrap}
+
+.sub{border-left:2px solid var(--rule);padding-left:13px;margin:2px 0 16px}
+.sub .field:last-child{margin-bottom:0}
+
+.derived{background:var(--paper-2);border-left:3px solid var(--ai);padding:11px 13px;margin:18px 0;font-size:14px}
+.derived .row{display:flex;justify-content:space-between;gap:12px}
+.derived .row + .row{margin-top:4px}
+.derived b{font-variant-numeric:tabular-nums;font-weight:600}
+
+.radios{display:flex;flex-wrap:wrap;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.radios label{
+  flex:1 1 0;min-width:76px;text-align:center;padding:10px 3px;font-size:14px;line-height:1.35;
+  cursor:pointer;background:#fff;color:var(--ink-3);border-right:1px solid var(--rule);
+}
+.radios label:last-child{border-right:none}
+.radios input{position:absolute;opacity:0;pointer-events:none}
+.radios label:has(input:checked){background:var(--ai);color:#fff}
+.hint{font-size:13px;color:var(--ink-3);margin-top:6px;line-height:1.6}
+.hint.warn{color:var(--shu)}
+.req{margin-top:4px}
+.req summary{
+  font-size:13px;color:var(--ai);cursor:pointer;padding:6px 0;
+  list-style:none;min-height:32px;display:flex;align-items:center;
+}
+.req summary::-webkit-details-marker{display:none}
+.req summary::before{content:'＋ ';font-size:12px}
+.req[open] summary::before{content:'− '}
+.req .hint{margin-top:0}
+.applied{
+  background:#fff;border:1px solid var(--rule);border-left:3px solid var(--ai);
+  border-radius:2px;padding:10px 12px;margin-top:14px;
+}
+.applied-ttl{
+  font-size:11.5px;letter-spacing:.08em;color:var(--ink-3);
+  padding-bottom:5px;margin-bottom:6px;border-bottom:1px solid var(--rule);
+}
+.applied-body{font-size:13px;line-height:1.7}
+.applied-body .r{display:flex;justify-content:space-between;gap:10px}
+.applied-body .r + .r{margin-top:2px}
+.applied-body .k{color:var(--ink-3);white-space:nowrap}
+.applied-body .v{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;margin-left:auto}
+.applied-body .head{margin-bottom:5px}
+
+.headline{margin-bottom:28px}
+.headline .lead{font-size:14px;color:var(--ink-3);margin-bottom:2px}
+.bignum{
+  font-family:var(--mincho);font-variant-numeric:tabular-nums;
+  font-size:clamp(42px,11vw,62px);line-height:1.05;color:var(--ai);letter-spacing:-.01em;
+}
+.bignum .yen{font-size:.42em;margin-left:.15em;letter-spacing:.05em}
+.subline{font-size:14px;color:var(--ink-3);margin-top:6px;font-variant-numeric:tabular-nums}
+.breakdown{margin-top:10px;max-width:400px}
+.brow{
+  display:flex;justify-content:space-between;gap:14px;
+  font-size:14px;padding:4px 0;border-bottom:1px dotted var(--rule);
+}
+.brow .l{color:var(--ink-3)}
+.brow .v{font-variant-numeric:tabular-nums;white-space:nowrap}
+.brow.minus .v{color:var(--asagi)}
+.bnote{font-size:13px;color:var(--ink-3);margin-top:6px;font-variant-numeric:tabular-nums}
+
+.creditblock{
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  padding:16px 0;margin-bottom:28px;
+}
+.creditblock .lead{font-size:14px;color:var(--ink-3);margin-bottom:4px}
+.creditfacts{display:flex;gap:34px;flex-wrap:wrap;margin-top:8px}
+.fact .lbl{font-size:13px;color:var(--ink-3)}
+.fact .val{
+  font-family:var(--mincho);font-variant-numeric:tabular-nums;
+  font-size:24px;line-height:1.25;color:var(--ai);
+}
+.explain{
+  font-size:13.5px;line-height:1.75;color:var(--ink-3);
+  background:var(--paper-2);border-left:3px solid var(--asagi);
+  padding:11px 13px;margin-top:10px;
+}
+.explain b{color:var(--ink);font-weight:600}
+.explain.warn{border-left-color:var(--shu);color:var(--shu)}
+.netrow{margin-top:12px}
+.netlabel{font-size:14px;color:var(--ink-3);margin-bottom:2px}
+.netnum{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.netgap{
+  font-size:15px;color:var(--asagi);font-variant-numeric:tabular-nums;
+  border-left:2px solid var(--asagi);padding-left:11px;line-height:1.45;
+}
+.netgap b{display:block;font-size:19px;font-weight:600}
+.ratio-note{font-size:14px;padding:10px 13px;border-left:3px solid var(--asagi);background:var(--paper-2);margin-top:14px}
+.ratio-note.warn{border-left-color:var(--shu);color:var(--shu)}
+
+.addbtn{flex:none;border:none;background:none;color:var(--ai);width:38px;height:38px;padding:0;font-size:26px;line-height:1;cursor:pointer;font-family:var(--gothic)}
+.addbtn:active{color:var(--ai-light)}
+.crow{display:grid;grid-template-columns:118px 1fr 34px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--rule)}
+.crow .clabel{font-size:14px;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink-3)}
+.crow.cur .clabel{color:var(--ai);font-weight:600}
+.crow .cedit{display:flex;align-items:center;gap:5px}
+.crow .cedit input{min-height:40px;padding:7px 8px;font-size:15px}
+.crow .cedit .unit{font-size:13px}
+.ctrack{min-width:0}
+.cbar{
+  height:30px;background:var(--asagi);border-radius:0 3px 3px 0;
+  display:flex;align-items:center;justify-content:flex-end;padding-right:9px;
+  color:#fff;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;transition:width .25s ease;
+}
+.crow.cur .cbar{background:var(--ai)}
+.cdiff{font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;margin-top:3px}
+.cdiff.up{color:var(--shu)}
+.delbtn{width:34px;height:34px;border:none;background:none;color:var(--ink-3);font-size:19px;line-height:1;cursor:pointer;border-radius:50%}
+.delbtn:active{background:var(--paper-2);color:var(--shu)}
+
+.actions{margin-top:28px}
+.btns{flex:1 1 100%;display:flex;gap:10px;flex-wrap:wrap}
+.actions button{
+  flex:1 1 160px;
+  font:inherit;font-size:15px;min-height:50px;padding:0 24px;border-radius:6px;cursor:pointer;
+  background:#fff;color:var(--ai);border:1px solid var(--ai);
+}
+.actions button.solid{background:var(--ai);color:#fff;border-color:var(--ai)}
+.actions button:active{opacity:.85}
+.actions button.arm{background:var(--shu);color:#fff;border-color:var(--shu)}
+.actnote{
+  flex:1 1 100%;font-size:13px;line-height:1.6;color:var(--ink-3);
+  border-left:3px solid var(--asagi);background:var(--paper-2);padding:9px 12px;
+}
+
+@media print{
+  @page{size:A4 portrait;margin:9mm 10mm}
+  html,body{background:#fff}
+  body{font-size:9.5pt;line-height:1.55;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .wrap{max-width:none;padding:0}
+
+  /* 見出し */
+  .masthead{padding:0 0 5px;margin-bottom:9px;border-bottom-width:1.5px}
+  .masthead h1{font-size:14px}
+
+  /* 2段組みを詰める */
+  .cols{grid-template-columns:216px 1fr;gap:14px}
+  .panel h2,.result h2{font-size:11px;margin-bottom:7px;padding-bottom:4px}
+  .field{margin-bottom:4px}
+  .field > label{font-size:9px;margin-bottom:0}
+  .sep{margin:8px 0 7px}
+
+  /* 入力欄は枠を消して一覧表のように */
+  input[type=number]{
+    border:none;background:transparent;min-height:0;
+    padding:0;font-size:12px;line-height:1.3;
+  }
+  .inputline{gap:4px}
+  .unit{font-size:9px}
+  .checkline{min-height:0;font-size:9.5px;gap:5px;padding:0}
+  .checkline input{width:11px;height:11px}
+  .checkpair{gap:2px 12px}
+  .sub{padding-left:8px;margin:2px 0 6px}
+  .radios label{padding:3px 2px;font-size:9px;min-width:0;flex:1 1 0}
+  .derived{padding:5px 7px;margin:8px 0;font-size:9.5px}
+  .applied{padding:5px 7px;margin-top:7px}
+  .applied-ttl{font-size:8px;padding-bottom:3px;margin-bottom:3px}
+  .applied-body{font-size:9.5px;line-height:1.55}
+  .hint{font-size:8.5px;line-height:1.45;margin-top:2px}
+
+  /* 結果 */
+  .headline{margin-bottom:10px}
+  .headline .lead{font-size:9.5px}
+  .bignum{font-size:33px;line-height:1}
+  .breakdown{margin-top:5px;max-width:330px}
+  .brow{font-size:10.5px;padding:2px 0}
+  .bnote{font-size:8.5px;margin-top:3px}
+  .ratio-note{font-size:9px;padding:5px 7px;margin-top:7px}
+  .creditblock{padding:8px 0;margin-bottom:10px}
+  .creditfacts{gap:24px;margin-top:4px}
+  .fact .lbl{font-size:9px}
+  .fact .val{font-size:18px}
+  .explain{font-size:9.5px;line-height:1.55;padding:7px 9px;margin-top:6px}
+  .netrow{margin-top:6px}
+  .netlabel{font-size:9.5px}
+  .netgap{font-size:9px;padding-left:8px}
+  .netgap b{font-size:13px}
+  section{margin-bottom:10px}
+  .crow{padding:4px 0;grid-template-columns:96px 1fr 0}
+  .crow .clabel{font-size:9.5px}
+  .cbar{height:19px;font-size:10px;padding-right:7px}
+  .cdiff{font-size:8.5px;margin-top:1px}
+
+  /* 印刷では隠す・出す */
+  .actions button,.addbtn,.delbtn,.req summary{display:none}
+  .req .hint{display:block}
+  .crow .cedit input{border:none;padding:0;font-size:10px;text-align:right}
+  .actions{margin-top:6px}
+
+  /* 途中で切れないように */
+  .headline,.creditblock,.crow,.applied,.derived{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <h1>住宅ローン返済シミュレーション</h1>
+</header>
+
+<div class="cols">
+
+<form class="panel" id="form" autocomplete="off">
+  <h2>ご入力条件</h2>
+
+  <div class="field">
+    <label for="price">物件価格</label>
+    <div class="inputline"><input type="number" id="price" value="5480" min="0" step="any" inputmode="decimal"><span class="unit">万円</span></div>
+  </div>
+  <div class="field">
+    <label for="mgmt">管理費・修繕積立金など（月額）</label>
+    <div class="inputline"><input type="number" id="mgmt" value="" min="0" step="any" inputmode="decimal"><span class="unit">万円</span></div>
+  </div>
+
+  <hr class="sep">
+
+  <div class="field">
+    <label for="down">頭金・自己資金</label>
+    <div class="inputline"><input type="number" id="down" value="500" min="0" step="any" inputmode="decimal"><span class="unit">万円</span></div>
+  </div>
+
+  <div class="field">
+    <label for="cost">諸費用</label>
+    <div class="inputline"><input type="number" id="cost" value="330" min="0" step="any" inputmode="decimal"><span class="unit">万円</span></div>
+  </div>
+
+  <div class="checkpair">
+    <label class="checkline"><input type="checkbox" id="costInLoan" checked> 諸費用も借入に含める</label>
+    <label class="checkline"><input type="checkbox" id="useDeduction" checked> 住宅ローン控除を使う</label>
+  </div>
+
+  <div class="sub" id="deductionBox">
+    <div class="field">
+      <label>住宅の性能区分</label>
+      <div class="radios">
+        <label><input type="radio" name="grade" value="certified"><span>認定住宅</span></label>
+        <label><input type="radio" name="grade" value="zeh" checked><span>ZEH水準</span></label>
+        <label><input type="radio" name="grade" value="energy"><span>省エネ基準</span></label>
+        <label><input type="radio" name="grade" value="other"><span>基準未満</span></label>
+      </div>
+    </div>
+    <div class="field">
+      <label>築年数の区分</label>
+      <div class="radios">
+        <label><input type="radio" name="dtype" value="resale" checked><span>築10年以上</span></label>
+        <label><input type="radio" name="dtype" value="existing"><span>築10年未満</span></label>
+      </div>
+      <details class="req"><summary>適用条件を見る</summary>
+        <div class="hint" id="typeNote"></div>
+      </details>
+    </div>
+    <div class="field">
+      <label>耐震の区分</label>
+      <div class="radios">
+        <label><input type="radio" name="quake" value="new" checked><span>新耐震<br>1982年以降</span></label>
+        <label><input type="radio" name="quake" value="cert"><span>旧耐震<br>証明書あり</span></label>
+        <label><input type="radio" name="quake" value="none"><span>旧耐震<br>証明書なし</span></label>
+      </div>
+    </div>
+    <label class="checkline"><input type="checkbox" id="childRaising"> 子育て世帯・若者夫婦世帯</label>
+    <div class="applied">
+      <div class="applied-ttl">適用される控除の枠</div>
+      <div class="applied-body" id="limitNote"></div>
+    </div>
+  </div>
+
+  <div class="derived">
+    <div class="row"><span>必要資金の合計</span><b id="dNeed">—</b></div>
+    <div class="row"><span>お借入額</span><b id="dLoan">—</b></div>
+  </div>
+
+  <div class="field">
+    <label for="rateNum">借入金利（年）</label>
+    <div class="inputline"><input type="number" id="rateNum" value="0.700" min="0" max="10" step="0.005" inputmode="decimal"><span class="unit">％</span></div>
+  </div>
+
+  <div class="field">
+    <label for="years">返済期間</label>
+    <div class="inputline"><input type="number" id="years" value="35" min="1" max="50" step="1" inputmode="numeric"><span class="unit">年</span></div>
+  </div>
+
+  <div class="field">
+    <label>返済方式</label>
+    <div class="radios">
+      <label><input type="radio" name="method" value="equal" checked><span>元利均等</span></label>
+      <label><input type="radio" name="method" value="principal"><span>元金均等</span></label>
+    </div>
+  </div>
+
+  <label class="checkline"><input type="checkbox" id="usePair"> ペアローンを組む</label>
+  <div class="sub" id="pairBox" hidden>
+    <div class="field">
+      <label for="loanA">お一人目のお借入額</label>
+      <div class="inputline"><input type="number" id="loanA" value="" min="0" step="any" inputmode="decimal"><span class="unit">万円</span></div>
+    </div>
+    <div class="field">
+      <label for="loanB">お二人目のお借入額</label>
+      <div class="inputline"><input type="number" id="loanB" value="" min="0" step="any" inputmode="decimal"><span class="unit">万円</span></div>
+      <div class="hint" id="pairHint"></div>
+    </div>
+  </div>
+
+  <label class="checkline"><input type="checkbox" id="useBonus"> ボーナス払いを使う</label>
+  <div class="sub" id="bonusBox" hidden>
+    <div class="field">
+      <label for="bonusPay"><span id="bonusLabel">ボーナス1回あたりの返済額</span></label>
+      <div class="inputline"><input type="number" id="bonusPay" value="" min="0" step="any" inputmode="decimal"><span class="unit">万円</span></div>
+    </div>
+    <div class="field" id="bonusBField" hidden>
+      <label for="bonusPayB">お二人目のボーナス1回あたりの返済額</label>
+      <div class="inputline"><input type="number" id="bonusPayB" value="" min="0" step="any" inputmode="decimal"><span class="unit">万円</span></div>
+      <div class="hint" id="bonusHint">年2回・6か月ごとのお支払いとして計算します。</div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="income"><span id="incomeLabel">ご年収</span>（返済負担率の確認用）</label>
+    <div class="inputline"><input type="number" id="income" value="" min="0" step="any" inputmode="decimal"><span class="unit">万円</span></div>
+  </div>
+
+  <div class="field" id="income2Field" hidden>
+    <label for="income2">お二人目のご年収</label>
+    <div class="inputline"><input type="number" id="income2" value="" min="0" step="any" inputmode="decimal"><span class="unit">万円</span></div>
+  </div>
+
+</form>
+
+<main class="result">
+
+  <div class="headline">
+    <div class="lead">毎月のご負担額</div>
+    <div class="bignum"><span id="monthly">—</span><span class="yen">円</span></div>
+    <div class="breakdown" id="monthlyBreak"></div>
+    <div id="ratioBox"></div>
+  </div>
+
+  <div class="creditblock" id="netBlock">
+    <div class="lead">住宅ローン控除</div>
+    <div class="creditfacts" id="netFacts">
+      <div class="fact"><div class="lbl" id="factYearLabel">年間の控除額</div><div class="val" id="factYear">—</div></div>
+      <div class="fact"><div class="lbl" id="factTotalLabel">最大控除額</div><div class="val" id="factTotal">—</div></div>
+    </div>
+    <div class="explain" id="netExplain"></div>
+    <div class="netrow" id="netRow">
+      <div class="netlabel">控除期間中の実質の月々のご負担額</div>
+      <div class="netnum">
+        <div class="bignum"><span id="netMonthly">—</span><span class="yen">円</span></div>
+        <div class="netgap" id="netGap"></div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <h2 class="withadd"><span id="compareTitle">頭金を変えた場合の比較</span>
+      <button type="button" class="addbtn" id="addBtn" aria-label="比較する頭金を追加">＋</button>
+    </h2>
+    <div id="downCompare"></div>
+  </section>
+
+  <div class="headline" id="maxBlock" hidden>
+    <div class="lead" id="maxLead"></div>
+    <div class="bignum"><span id="maxMonthly">—</span><span class="yen">円</span></div>
+    <div class="breakdown" id="maxBreak"></div>
+  </div>
+
+  <div class="actions">
+    <div class="btns">
+      <button type="button" class="solid" id="printBtn">PDFで保存</button>
+      <button type="button" id="resetBtn">条件をリセット</button>
+    </div>
+    <div class="actnote" id="actNote" hidden></div>
+  </div>
+
+</main>
+</div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   設定値 — 制度改正時はここだけ直せば反映されます
+   住宅ローン控除：令和8年度税制改正後（租税特別措置法第41条・
+   2026年4月1日施行）／令和8〜12年入居
+   本アプリは買取再販住宅（宅建業者がリフォームして再販した
+   リノベーションマンション）を前提。税制上は新築と同水準の枠。
+   ══════════════════════════════════════════════════════════════ */
+const CONFIG = {
+  addStep:100,        // ＋を押したときに現在の頭金に足す額（万円）
+  ratioCaution:30,
+  ratioWarn:35,
+  deduction:{
+    rate:0.7,         // 控除率（％）
+    minYears:10,      // 控除の適用に必要な返済期間（年）
+    gradeName:{
+      certified:'認定長期優良・低炭素住宅', zeh:'ZEH水準省エネ住宅',
+      energy:'省エネ基準適合住宅', other:'その他の住宅（省エネ基準未満）'
+    },
+    // limit … [通常世帯, 子育て世帯・若者夫婦世帯]（万円）
+    types:{
+      // 買取再販住宅（築10年以上）… 新築と同水準の枠
+      resale:{
+        label:'買取再販住宅（新築と同水準の枠）',
+        grades:{
+          certified:{ limit:[4500,5000], years:13 },
+          zeh:      { limit:[3500,4500], years:13 },
+          energy:   { limit:[2000,3000], years:13 },
+          other:    { limit:[2000,2000], years:10 }
+        }
+      },
+      // 築10年未満 … 買取再販の要件を満たさず、一般の既存住宅の枠
+      existing:{
+        label:'一般の既存住宅の枠',
+        grades:{
+          certified:{ limit:[3500,4500], years:13 },
+          zeh:      { limit:[3500,4500], years:13 },
+          energy:   { limit:[2000,3000], years:13 },
+          other:    { limit:[2000,2000], years:10 }
+        }
+      }
+    }
+  }
+};
+
+let extras = [];
+let seq = 0;
+let order = ['cur'];
+
+const $ = id => document.getElementById(id);
+const yen = n => Math.floor(n).toLocaleString('ja-JP');
+const man = n => (n/10000).toLocaleString('ja-JP',{maximumFractionDigits:0}) + '万円';
+
+function annuity(p, r, n){
+  if(p <= 0 || n <= 0) return 0;
+  if(r === 0) return p / n;
+  const f = Math.pow(1 + r, n);
+  return p * r * f / (f - 1);
+}
+function principalFromPayment(pay, r, n){
+  if(pay <= 0 || n <= 0) return 0;
+  if(r === 0) return pay * n;
+  return pay * (1 - Math.pow(1 + r, -n)) / r;
+}
+
+function buildSchedule(loan, annualRate, years, method, bonusPay){
+  const mRate = annualRate/100/12, bRate = annualRate/100/2;
+  const n = years*12, bn = years*2;
+
+  // ご入力の「1回あたりの返済額」に対応する元金を逆算
+  //   元利均等：年金現価　／　元金均等：初回額 = 元金/回数 + 元金×利率
+  const rawPrincipal = bonusPay <= 0 ? 0
+    : (method === 'equal' ? principalFromPayment(bonusPay, bRate, bn)
+                          : bonusPay / (1/bn + bRate));
+  const bPrincipal = Math.min(rawPrincipal, loan);
+  const clamped = bPrincipal < rawPrincipal - 0.5;   // 借入額を超えて頭打ちになった場合
+  const mPrincipal = loan - bPrincipal;
+
+  const mPay = method === 'equal' ? annuity(mPrincipal, mRate, n) : 0;
+  // ご入力額をそのまま使う（元金からの再計算だと往復の誤差で1円ずれるため）
+  const bPayEq = method === 'equal'
+    ? (clamped ? annuity(bPrincipal, bRate, bn) : bonusPay) : 0;
+  const mFlat = mPrincipal/n, bFlat = bPrincipal/bn;
+
+  let mBal = mPrincipal, bBal = bPrincipal;
+  let total = 0, interest = 0, first = 0, firstBonus = 0, firstYear = 0;
+  const yearEnd = [];
+
+  for(let i = 1; i <= n; i++){
+    const mInt = mBal*mRate;
+    let mPri, mAmt;
+    if(method === 'equal'){ mAmt = (i === n) ? mBal + mInt : mPay; mPri = mAmt - mInt; }
+    else { mPri = (i === n) ? mBal : mFlat; mAmt = mPri + mInt; }
+    mBal = Math.max(mBal - mPri, 0);
+    total += mAmt; interest += mInt;
+    if(i === 1) first = mAmt;
+    if(i <= 12) firstYear += mAmt;
+
+    if(bPrincipal > 0 && i % 6 === 0){
+      const k = i/6, bInt = bBal*bRate;
+      let bPri, bAmt;
+      if(method === 'equal'){ bAmt = (k === bn) ? bBal + bInt : bPayEq; bPri = bAmt - bInt; }
+      else { bPri = (k === bn) ? bBal : bFlat; bAmt = bPri + bInt; }
+      bBal = Math.max(bBal - bPri, 0);
+      total += bAmt; interest += bInt;
+      if(!firstBonus) firstBonus = bAmt;
+      if(i <= 12) firstYear += bAmt;
+    }
+    if(i % 12 === 0) yearEnd.push(mBal + bBal);
+  }
+  return { total, interest, first, firstBonus, firstYear, yearEnd,
+           bonusRatio: loan > 0 ? bPrincipal/loan : 0, bonusClamped:clamped };
+}
+
+// 住宅ローン控除：各年の年末残高 × 控除率（借入限度額まで）
+function deductionOf(sched, v, share){
+  const d = CONFIG.deduction;
+  const type = d.types[v.dtype];
+  const g = type.grades[v.grade];
+  const limitMan = g.limit[v.child ? 1 : 0];
+  // 控除の対象となる残高は「借入限度額」と「住宅の取得対価（物件価格）」の
+  // いずれか小さい方まで。諸費用をローンに含めた分は対象外。
+  // 借入限度額はお一人ずつに適用。取得対価は持分割合に応じた額まで。
+  const sh = share === undefined ? 1 : share;
+  const cap = Math.min(limitMan * 10000, (v.price * sh) || Infinity);
+  let reason = '';
+  if(v.quake === 'none') reason = 'quake';          // 旧耐震で耐震基準適合証明書等なし
+  else if(v.loan > 0 && v.years < CONFIG.deduction.minYears) reason = 'term';  // 返済期間10年未満
+  const eligible = !reason;
+  const yearly = [];
+  let sum = 0;
+  if(eligible){
+    for(let y = 0; y < Math.min(g.years, sched.yearEnd.length); y++){
+      const amt = Math.min(sched.yearEnd[y], cap) * d.rate/100;
+      yearly.push(amt); sum += amt;
+    }
+  }
+  // 実際に控除を受ける年数（返済期間が控除期間より短い場合はその年数）
+  const actualYears = yearly.length || g.years;
+  return { sum, yearly, limitMan, cap, years:g.years, actualYears,
+           perMonth: sum / (actualYears * 12),
+           name:d.gradeName[v.grade], typeLabel:type.label, eligible, reason };
+}
+
+// ペアローンならお二人分を合算して返す（単独ならそのまま）
+function scheduleOf(v, loan){
+  const shares = v.pair ? [v.share, 1 - v.share] : [1];
+  const bonuses = v.pair ? [v.bonusPay, v.bonusB] : [v.bonusPay];
+  const parts = shares.map((sh, i) => ({
+    share: sh,
+    sched: buildSchedule(loan * sh, v.rate, v.years, v.method, bonuses[i])
+  }));
+  const sum = k => parts.reduce((a, p) => a + p.sched[k], 0);
+  let credit = 0, ded = null;
+  if(v.useDeduction){
+    const list = parts.map(p => deductionOf(p.sched, v, p.share));
+    credit = list.reduce((a, d) => a + d.perMonth, 0);
+    ded = {
+      eligible:list[0].eligible, reason:list[0].reason,
+      years:list[0].years, actualYears:list[0].actualYears,
+      limitMan:list[0].limitMan, cap:list[0].cap,
+      capSum:list.reduce((a, d) => a + d.cap, 0),
+      name:list[0].name, typeLabel:list[0].typeLabel,
+      sum:list.reduce((a,d) => a + d.sum, 0),
+      perMonth:credit,
+      yearly:(list[0].yearly || []).map((_, i) => list.reduce((a,d) => a + (d.yearly[i] || 0), 0))
+    };
+  }
+  return {
+    parts, ded, credit,
+    first:sum('first'), total:sum('total'), interest:sum('interest'),
+    firstBonus:sum('firstBonus'), firstYear:sum('firstYear'),
+    bonusRatio:parts.reduce((a, p) => a + p.sched.bonusRatio * p.share, 0),
+    bonusClamped:parts.some(p => p.sched.bonusClamped)
+  };
+}
+
+function readInputs(){
+  const price = (+$('price').value || 0) * 10000;
+  const down  = (+$('down').value  || 0) * 10000;
+  const cost  = (+$('cost').value  || 0) * 10000;
+  const inLoan = $('costInLoan').checked;
+  const loanTotal = Math.max(price + (inLoan ? cost : 0) - down, 0);
+  return {
+    price, down, cost, inLoan,
+    need: price + cost,
+    loan: loanTotal,
+    useDeduction: $('useDeduction').checked,
+    grade: document.querySelector('input[name=grade]:checked').value,
+    dtype: document.querySelector('input[name=dtype]:checked').value,
+    child: $('childRaising').checked,
+    quake: document.querySelector('input[name=quake]:checked').value,
+    rate:+$('rateNum').value || 0,
+    years: Math.max(+$('years').value || 1, 1),
+    method: document.querySelector('input[name=method]:checked').value,
+    bonusPay: $('useBonus').checked ? (+$('bonusPay').value || 0) * 10000 : 0,
+    pair: $('usePair').checked,
+    share: (() => {
+      if(!$('usePair').checked || loanTotal <= 0) return 0.5;
+      const a = (+$('loanA').value || 0) * 10000;
+      return Math.min(Math.max(a / loanTotal, 0), 1);
+    })(),
+    bonusB: ($('useBonus').checked && $('usePair').checked)
+      ? (+$('bonusPayB').value || 0) * 10000 : 0,
+    income:(+$('income').value || 0) * 10000,
+    income2: $('usePair').checked ? (+$('income2').value || 0) * 10000 : 0,
+    mgmt:(+$('mgmt').value || 0) * 10000
+  };
+}
+
+// 内訳の小さな表をつくる
+function breakdownHTML(v, sched, credit){
+  const rows = [];
+  if(v.pair){
+    rows.push(['お一人目のローン返済', sched.parts[0].sched.first]);
+    rows.push(['お二人目のローン返済', sched.parts[1].sched.first]);
+  }else{
+    rows.push(['ローン返済', sched.first]);
+  }
+  if(v.mgmt > 0) rows.push(['管理費・修繕積立金など', v.mgmt]);
+  if(credit > 0) rows.push(['住宅ローン控除（月あたり）', -credit]);
+
+  let html = rows.map(r =>
+    '<div class="brow' + (r[1] < 0 ? ' minus' : '') + '">'
+    + '<span class="l">' + r[0] + '</span>'
+    + '<span class="v">' + (r[1] < 0 ? '▲' : '') + yen(Math.abs(r[1])) + ' 円</span></div>'
+  ).join('');
+
+  const notes = [];
+  if(sched.firstBonus > 0){
+    notes.push('ボーナス月は別途 ' + yen(sched.firstBonus) + '円'
+      + (v.pair ? '（お一人目 ' + yen(sched.parts[0].sched.firstBonus) + '円 ／ お二人目 '
+                + yen(sched.parts[1].sched.firstBonus) + '円）' : ''));
+  }
+  if(v.method === 'principal') notes.push('初回の金額です。元金均等のため毎月少しずつ減っていきます。');
+  if(notes.length) html += '<div class="bnote">' + notes.join('<br>') + '</div>';
+  return html;
+}
+
+function render(){
+  let v = readInputs();
+  if(v.pair){ syncPair(v.loan); v = readInputs(); }   // 欄を整えてから読み直す
+
+  // 物件価格・返済期間が未入力のうちは金額を出さない
+  if(v.loan <= 0 || $('years').value === ''){
+    $('monthly').textContent = '—';
+    $('monthlyBreak').innerHTML = '';
+    $('ratioBox').className = ''; $('ratioBox').textContent = '';
+    $('netBlock').hidden = true;
+    $('maxBlock').hidden = true;
+    $('downCompare').innerHTML = '';
+    $('deductionBox').hidden = !v.useDeduction;
+    $('bonusBox').hidden = !$('useBonus').checked;
+    $('pairBox').hidden = !v.pair;
+    $('income2Field').hidden = !v.pair;
+    $('bonusBField').hidden = !v.pair;
+    $('dNeed').textContent = v.need > 0 ? man(v.need) : '—';
+    $('dLoan').textContent = '—';
+    return;
+  }
+
+  const s = scheduleOf(v, v.loan);
+
+  $('deductionBox').hidden = !v.useDeduction;
+  $('bonusBox').hidden = !$('useBonus').checked;
+  $('pairBox').hidden = !v.pair;
+  $('incomeLabel').textContent = v.pair ? 'お一人目のご年収' : 'ご年収';
+  $('bonusLabel').textContent = v.pair
+    ? 'お一人目のボーナス1回あたりの返済額' : 'ボーナス1回あたりの返済額';
+  $('bonusBField').hidden = !v.pair;
+  $('income2Field').hidden = !v.pair;
+  if(v.pair){
+    $('pairHint').textContent = '合計 ' + man(v.loan)
+      + '　どちらかを入力すると、もう一方はお借入額との差額が入ります。'
+      + '住宅ローン控除の借入限度額はお一人ずつに適用されます。';
+  }
+
+  $('dNeed').textContent = man(v.need);
+  $('dLoan').textContent = man(v.loan);
+
+  const monthly = s.first + v.mgmt;
+  $('monthly').textContent = yen(monthly);
+  if($('useBonus').checked){
+    const pct = (s.bonusRatio*100).toFixed(0);
+    $('bonusHint').className = 'hint' + (s.bonusClamped || s.bonusRatio > CONFIG.bonusRatioWarn ? ' warn' : '');
+    $('bonusHint').textContent = s.bonusClamped
+      ? 'ご入力額が大きすぎるため、お借入額の全額をボーナス返済分として計算しています。金額を下げてください。'
+      : s.bonusRatio > CONFIG.bonusRatioWarn
+        ? 'ボーナス返済分がお借入額の' + pct + '％です。金融機関の上限（一般に40〜50％）を超える可能性があります。'
+        : '年2回・6か月ごとのお支払いとして計算します。ボーナス返済分はお借入額の' + pct + '％です。';
+  }
+  $('monthlyBreak').innerHTML = breakdownHTML(v, s, 0);
+
+  const box = $('ratioBox');
+  const totalIncome = v.income + v.income2;
+  if(totalIncome > 0){
+    const ratio = s.firstYear/totalIncome*100;
+    box.className = 'ratio-note' + (ratio > CONFIG.ratioCaution ? ' warn' : '');
+    box.textContent = '年間返済額 ' + yen(s.firstYear) + '円　返済負担率 '
+      + (v.pair ? 'お二人合算 ' : '') + ratio.toFixed(1) + '％'
+      + (v.pair && (v.income <= 0 || v.income2 <= 0)
+          ? '　※お一人分のご年収のみで計算しています。'
+          : ratio > CONFIG.ratioWarn ? '　金融機関の基準（一般に35％前後）を超える可能性があります。'
+          : ratio > CONFIG.ratioCaution ? '　余裕を持たせるなら30％以内が目安です。' : '');
+  }else{ box.className = ''; box.textContent = ''; }
+
+  /* 住宅ローン控除 → 実質の月々のご負担額 */
+  if(v.useDeduction){
+    const dd = s.ded;
+    $('netBlock').hidden = false;
+    const perMonth = dd.perMonth;
+    if(dd.eligible){
+      const first = dd.yearly[0] || 0;
+      const last  = dd.yearly[dd.yearly.length - 1] || 0;
+      const flat  = Math.abs(first - last) < 1000;
+      $('netFacts').hidden = false;
+      $('factYearLabel').textContent = '年間の控除額' + (v.pair ? '（お二人合計）' : '');
+      $('factYear').textContent = (flat ? yen(first) : yen(last) + '〜' + yen(first)) + ' 円';
+      $('factTotalLabel').textContent = '最大控除額（' + dd.actualYears + '年間）';
+      $('factTotal').textContent = yen(dd.sum) + ' 円';
+      $('netRow').hidden = false;
+      $('netMonthly').textContent = yen(monthly - perMonth);
+      $('netGap').innerHTML = '住宅ローン控除の効果<b>月あたり ▲' + yen(perMonth) + '円</b>'
+        + '控除がない場合 ' + yen(monthly) + '円';
+      $('netExplain').className = 'explain';
+      const capped = dd.cap < dd.limitMan * 10000;
+      const target = capped
+        ? '住宅の取得対価 ' + man(dd.cap) + (v.pair ? '（お一人あたり）' : '')
+        : dd.limitMan.toLocaleString('ja-JP') + '万円'
+          + (v.pair ? '（お一人あたり。お二人で' + (dd.limitMan*2).toLocaleString('ja-JP') + '万円）' : '');
+      // 上限に張り付く年数で言い方を変える
+      const maxYear = dd.capSum * CONFIG.deduction.rate/100;
+      const capYears = dd.yearly.filter(a => a >= maxYear - 1).length;
+      let howMuch;
+      if(flat || capYears === dd.yearly.length){  // 期間中ほぼ変わらない（上の表示も単一の数字）
+        howMuch = 'ただし対象となるのは残高のうち ' + target + ' までのため、控除額は'
+          + dd.actualYears + '年間を通じて <b>年' + yen(capYears > 0 ? maxYear : first) + '円</b> となります。';
+      }else if(capYears > 0){                     // はじめの数年だけ上限
+        howMuch = 'ただし対象となるのは残高のうち ' + target + ' までのため、'
+          + '<b>はじめの' + capYears + '年間は上限の' + yen(maxYear) + '円</b>、'
+          + 'その後は残高が減るにつれて <b>' + dd.actualYears + '年目には' + yen(last) + '円</b> まで少しずつ下がります。';
+      }else{                                      // 一度も上限に届かない
+        howMuch = '（対象となる残高の上限は ' + target + '）。残高が減るにつれて、'
+          + '<b>1年目の' + yen(first) + '円から' + dd.actualYears + '年目の' + yen(last) + '円</b> まで少しずつ下がります。';
+      }
+      $('netExplain').innerHTML =
+        '控除額は、<b>毎年末のローン残高の' + CONFIG.deduction.rate + '％</b>です'
+        + (capYears > 0 ? '。' : '') + howMuch + '<br>'
+        + '控除されたお金は毎月ではなく、<b>年に1回まとめて戻ります</b>。'
+        + dd.actualYears + '年間の合計 ' + yen(dd.sum) + '円を月あたりにならすと <b>▲'
+        + yen(dd.perMonth) + '円</b>。これを上のご負担額から差し引いたのが下の金額です。<br>'
+        + '実際に戻る金額は、お客様が納めている所得税・住民税の範囲までです。';
+    }else{
+      $('netRow').hidden = true;
+      $('netExplain').className = 'explain warn';
+      $('netExplain').textContent = dd.reason === 'term'
+        ? '住宅ローン控除は返済期間10年以上が要件です。返済期間を10年以上でご設定ください。'
+        : '1981年（昭和56年）以前の建築で耐震基準適合証明書等がない場合、住宅ローン控除の対象外です。お引渡しまでに耐震改修を行い証明を受けられれば対象になります。';
+    }
+    $('limitNote').innerHTML =
+      '<div class="head">' + dd.typeLabel + '<br>' + dd.name
+        + (v.child ? '（子育て世帯・若者夫婦世帯）' : '') + '</div>'
+      + '<div class="r"><span class="k">借入限度額' + (v.pair ? '（お一人）' : '') + '</span><span class="v">'
+        + dd.limitMan.toLocaleString('ja-JP') + '万円</span></div>'
+      + (v.pair ? '<div class="r"><span class="k">お二人合計</span><span class="v">'
+        + (dd.limitMan*2).toLocaleString('ja-JP') + '万円</span></div>' : '')
+      + '<div class="r"><span class="k">控除率</span><span class="v">' + CONFIG.deduction.rate + '％</span></div>'
+      + '<div class="r"><span class="k">控除期間</span><span class="v">' + dd.years + '年間</span></div>';
+    $('typeNote').textContent = v.quake === 'cert'
+      ? '旧耐震（1981年以前）でも、耐震基準適合証明書等があれば控除の対象です。築10年以上のため買取再販の枠で計算します。'
+      : v.quake === 'none'
+      ? '耐震基準適合証明書等がないため、住宅ローン控除は適用できません。'
+      : v.dtype === 'resale'
+      ? '買取再販の要件：宅建業者が取得してから2年以内の再販、新築から10年経過、リフォーム費用が売買価額の20％（上限300万円）以上、増改築等工事証明書の発行。すべて満たせば新築と同水準の枠が使えます。'
+      : '新築から10年を経過していない物件は、リフォーム済みでも買取再販住宅に該当しません。一般の既存住宅の枠（認定住宅は3,500万円／子育て世帯等4,500万円）で計算します。';
+  }else{
+    $('netBlock').hidden = true;
+  }
+
+  renderCompare(v);
+}
+
+function valueOf(key, v){
+  if(key === 'cur') return v.down/10000;
+  const e = extras.find(x => x.id === key);
+  return e ? e.value : 0;
+}
+function sortRows(){
+  const v = readInputs();
+  order.sort((a,b) => valueOf(a,v) - valueOf(b,v));
+}
+
+function computeRows(v){
+  return order.map(key => {
+    const d = valueOf(key, v);
+    const loan = Math.max(v.price + (v.inLoan ? v.cost : 0) - d*10000, 0);
+    const t = scheduleOf(v, loan);
+    const credit = t.credit;
+    return { key, d, cur:key === 'cur', loan, pay:t.first, sched:t,
+             monthly:t.first + v.mgmt - credit, credit,
+             total:t.total, bonus:t.firstBonus };
+  });
+}
+function diffText(c, base){
+  if(c.cur) return '現在のご入力条件';
+  const dm = c.monthly - base.monthly, dt = c.total - base.total;
+  return '毎月 ' + (dm > 0 ? '+' : '−') + yen(Math.abs(dm)) + '円 ／ 総額 '
+       + (dt > 0 ? '+' : '−') + yen(Math.abs(dt)) + '円';
+}
+
+// 入力中に呼ぶ：欄は作り直さず、バーと差額だけ書き換える
+function refreshBars(v){
+  const calcs = computeRows(v);
+  const base = calcs.find(c => c.cur) || calcs[0];
+  const maxM = Math.max(...calcs.map(c => c.monthly), 1);
+  updateMaxBlock(calcs, v);
+  calcs.forEach(c => {
+    const row = document.querySelector(`.crow[data-key="${c.key}"]`);
+    if(!row) return;
+    const bar = row.querySelector('.cbar');
+    bar.style.width = Math.max(c.monthly/maxM*100, 16).toFixed(1) + '%';
+    bar.textContent = yen(c.monthly) + '円';
+    const diff = row.querySelector('.cdiff');
+    diff.textContent = diffText(c, base);
+    diff.className = 'cdiff' + (!c.cur && c.monthly > base.monthly ? ' up' : '');
+  });
+}
+
+function renderCompare(v){
+  const calcs = computeRows(v);
+  const base = calcs.find(c => c.cur) || calcs[0];
+  $('compareTitle').textContent = base.credit > 0
+    ? '頭金を変えた場合の比較（実質の月額）' : '頭金を変えた場合の比較';
+  const maxM = Math.max(...calcs.map(c => c.monthly), 1);
+  updateMaxBlock(calcs, v);
+
+  $('downCompare').innerHTML = calcs.map(c => {
+    const w = Math.max(c.monthly/maxM*100, 16);
+    const dm = c.monthly - base.monthly;
+    const label = c.cur
+      ? `<div class="clabel">${c.d.toLocaleString('ja-JP')}万円</div>`
+      : `<div class="cedit"><input type="number" value="${c.d}" min="0" step="any" inputmode="decimal" data-id="${c.key}"><span class="unit">万円</span></div>`;
+    const note = diffText(c, base);
+    const del = c.cur ? '<span></span>'
+      : `<button type="button" class="delbtn" data-del="${c.key}" aria-label="この行を削除">×</button>`;
+    return `<div class="crow${c.cur ? ' cur' : ''}" data-key="${c.key}">
+      ${label}
+      <div class="ctrack">
+        <div class="cbar" style="width:${w.toFixed(1)}%">${yen(c.monthly)}円</div>
+        <div class="cdiff${dm > 0 ? ' up' : ''}">${note}</div>
+      </div>
+      ${del}
+    </div>`;
+  }).join('');
+}
+
+function updateMaxBlock(calcs, v){
+  const block = $('maxBlock');
+  if(calcs.length < 2){ block.hidden = true; return; }
+  const top = calcs.reduce((a,b) => b.d > a.d ? b : a);
+  block.hidden = false;
+  $('maxLead').textContent = '頭金を ' + top.d.toLocaleString('ja-JP') + '万円 にした場合の'
+    + (top.credit > 0 ? '実質の月々のご負担額' : '毎月のご負担額');
+  $('maxMonthly').textContent = yen(top.monthly);
+  $('maxBreak').innerHTML = breakdownHTML(v, top.sched, top.credit);
+}
+
+// 入力していないほうの欄に差額を入れる
+function syncPair(loanTotal){
+  const total = loanTotal / 10000;
+  const a = $('loanA'), b = $('loanB');
+  const act = document.activeElement;
+  if(act === a){
+    const va = Math.min(Math.max(+a.value || 0, 0), total);
+    b.value = Math.round((total - va) * 10) / 10;
+  }else if(act === b){
+    const vb = Math.min(Math.max(+b.value || 0, 0), total);
+    a.value = Math.round((total - vb) * 10) / 10;
+  }else{
+    const va = +a.value || 0;
+    if(a.value === '' || va <= 0){    // 未入力なら半分ずつ
+      const half = Math.round(total * 5) / 10;
+      a.value = half;
+      b.value = Math.round((total - half) * 10) / 10;
+    }else if(va > total){             // 借入額が減ったら上限で止める
+      a.value = Math.round(total * 10) / 10;
+      b.value = 0;
+    }else{
+      b.value = Math.round((total - va) * 10) / 10;
+    }
+  }
+}
+
+/* 操作 */
+$('addBtn').addEventListener('click', () => {
+  const cur = +$('down').value || 0;
+  let next = cur + CONFIG.addStep;
+  while(extras.some(e => e.value === next)) next += CONFIG.addStep;
+  const id = 'r' + (++seq);
+  extras.push({ id, value:next });
+  order.push(id);
+  sortRows();
+  render();
+});
+
+$('downCompare').addEventListener('input', e => {
+  const id = e.target.dataset.id;
+  if(!id) return;
+  const row = extras.find(x => x.id === id);
+  if(!row) return;
+  row.value = e.target.value === '' ? 0 : Math.max(+e.target.value || 0, 0);
+  refreshBars(readInputs());     // 入力欄はそのまま
+});
+$('downCompare').addEventListener('focusout', e => {
+  const id = e.target.dataset.id;
+  if(!id) return;
+  if(e.target.value === ''){                  // 空欄のまま離れたら行を削除
+    extras = extras.filter(x => x.id !== id);
+    order = order.filter(k => k !== id);
+    render();
+    return;
+  }
+  setTimeout(() => { sortRows(); render(); }, 0);
+});
+$('downCompare').addEventListener('keydown', e => {
+  if(e.key === 'Enter' && e.target.dataset.id){ e.preventDefault(); e.target.blur(); }
+});
+$('downCompare').addEventListener('click', e => {
+  const id = e.target.dataset.del;
+  if(!id) return;
+  extras = extras.filter(x => x.id !== id);
+  order = order.filter(k => k !== id);
+  render();
+});
+
+// 旧耐震は必ず築10年以上
+document.querySelectorAll('input[name=quake]').forEach(r => r.addEventListener('change', () => {
+  if(r.checked && r.value !== 'new') document.querySelector('input[name=dtype][value=resale]').checked = true;
+}));
+$('form').addEventListener('input', render);
+$('form').addEventListener('change', render);
+$('form').addEventListener('focusout', () => { sortRows(); render(); });
+
+// 印刷（iOSのホーム画面起動では印刷できないため案内を出す）
+$('printBtn').addEventListener('click', () => {
+  const standalone = window.navigator.standalone === true
+    || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  if(standalone){
+    note('ホーム画面から起動した場合、この端末では印刷ができません。'
+       + 'Safariでこのページを開き、画面下の共有ボタンから「プリント」をお選びください。');
+    return;
+  }
+  try{ window.print(); }
+  catch(e){ note('印刷を開始できませんでした。ブラウザのメニューから印刷をお選びください。'); }
+});
+
+function note(text){
+  const el = $('actNote');
+  el.textContent = text; el.hidden = false;
+}
+
+// リセットは2回押しで実行（端末の確認ダイアログに頼らない）
+let armed = null;
+$('resetBtn').addEventListener('click', () => {
+  const btn = $('resetBtn');
+  if(!armed){
+    btn.classList.add('arm');
+    btn.textContent = 'もう一度押すと消えます';
+    note('入力内容をすべて消します。取り消す場合は、そのままお待ちください。');
+    armed = setTimeout(disarm, 5000);
+    return;
+  }
+  disarm();
+  $('form').querySelectorAll('input[type=number]').forEach(i => i.value = '');
+  $('form').querySelectorAll('input[type=checkbox]').forEach(c => c.checked = false);
+  document.querySelector('input[name=grade][value=zeh]').checked = true;
+  document.querySelector('input[name=dtype][value=resale]').checked = true;
+  document.querySelector('input[name=quake][value=new]').checked = true;
+  document.querySelector('input[name=method][value=equal]').checked = true;
+  $('loanA').value = ''; $('loanB').value = '';
+  extras = []; order = ['cur']; seq = 0;
+  render();
+  $('price').focus();
+});
+
+function disarm(){
+  clearTimeout(armed); armed = null;
+  $('resetBtn').classList.remove('arm');
+  $('resetBtn').textContent = '条件をリセット';
+  $('actNote').hidden = true;
+}
+
+render();
+</script>
+</body>
+</html>
