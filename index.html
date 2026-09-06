@@ -679,9 +679,39 @@ function breakdownHTML(v, sched, credit){
   return html;
 }
 
+// 適用される控除の枠：性能区分・築年数・耐震の区分だけで決まるため、
+// 金利や返済期間の入力を待たずに表示する
+function renderDeductionInfo(v){
+  const d = CONFIG.deduction;
+  const type = d.types[v.dtype];
+  const g = type.grades[v.grade];
+  const limitMan = g.limit[v.child ? 1 : 0];
+  $('limitNote').innerHTML =
+    '<div class="head">' + type.label + '<br>' + d.gradeName[v.grade]
+      + (v.child ? '（子育て世帯・若者夫婦世帯）' : '') + '</div>'
+    + '<div class="r"><span class="k">借入限度額' + (v.pair ? '（お一人）' : '') + '</span><span class="v">'
+      + limitMan.toLocaleString('ja-JP') + '万円</span></div>'
+    + (v.pair ? '<div class="r"><span class="k">お二人合計</span><span class="v">'
+      + (limitMan*2).toLocaleString('ja-JP') + '万円</span></div>' : '')
+    + '<div class="r"><span class="k">控除率</span><span class="v">' + d.rate + '％</span></div>'
+    + '<div class="r"><span class="k">控除期間</span><span class="v">' + g.years + '年間</span></div>';
+  $('typeNote').textContent = v.quake === 'cert'
+    ? '旧耐震（1981年以前）でも、耐震基準適合証明書等があれば控除の対象です。築10年以上のため買取再販の枠で計算します。'
+    : v.quake === 'none'
+    ? '耐震基準適合証明書等がないため、住宅ローン控除は適用できません。'
+    : v.dtype === 'resale'
+    ? '買取再販の要件：宅建業者が取得してから2年以内の再販、新築から10年経過、リフォーム費用が売買価額の20％（上限300万円）以上、増改築等工事証明書の発行。すべて満たせば新築と同水準の枠が使えます。'
+    : '新築から10年を経過していない物件は、リフォーム済みでも買取再販住宅に該当しません。一般の既存住宅の枠（認定住宅は3,500万円／子育て世帯等4,500万円）で計算します。';
+}
+
 function render(){
   let v = readInputs();
   if(v.pair){ syncPair(v.loan); v = readInputs(); }   // 欄を整えてから読み直す
+
+  // 控除の枠とお借入額は返済額の計算に依らないため、先に反映する
+  if(v.useDeduction) renderDeductionInfo(v);
+  $('dNeed').textContent = v.need > 0 ? man(v.need) : '—';
+  $('dLoan').textContent = v.loan > 0 ? man(v.loan) : '—';
 
   // 物件価格・返済期間が未入力のうちは金額を出さない
   if(v.loan <= 0 || $('years').value === ''){
@@ -696,8 +726,6 @@ function render(){
     $('pairBox').hidden = !v.pair;
     $('income2Field').hidden = !v.pair;
     $('bonusBField').hidden = !v.pair;
-    $('dNeed').textContent = v.need > 0 ? man(v.need) : '—';
-    $('dLoan').textContent = '—';
     return;
   }
 
@@ -716,9 +744,6 @@ function render(){
       + '　どちらかを入力すると、もう一方はお借入額との差額が入ります。'
       + '住宅ローン控除の借入限度額はお一人ずつに適用されます。';
   }
-
-  $('dNeed').textContent = man(v.need);
-  $('dLoan').textContent = man(v.loan);
 
   const monthly = s.first + v.mgmt;
   $('monthly').textContent = yen(monthly);
@@ -799,22 +824,6 @@ function render(){
         ? '住宅ローン控除は返済期間10年以上が要件です。返済期間を10年以上でご設定ください。'
         : '1981年（昭和56年）以前の建築で耐震基準適合証明書等がない場合、住宅ローン控除の対象外です。お引渡しまでに耐震改修を行い証明を受けられれば対象になります。';
     }
-    $('limitNote').innerHTML =
-      '<div class="head">' + dd.typeLabel + '<br>' + dd.name
-        + (v.child ? '（子育て世帯・若者夫婦世帯）' : '') + '</div>'
-      + '<div class="r"><span class="k">借入限度額' + (v.pair ? '（お一人）' : '') + '</span><span class="v">'
-        + dd.limitMan.toLocaleString('ja-JP') + '万円</span></div>'
-      + (v.pair ? '<div class="r"><span class="k">お二人合計</span><span class="v">'
-        + (dd.limitMan*2).toLocaleString('ja-JP') + '万円</span></div>' : '')
-      + '<div class="r"><span class="k">控除率</span><span class="v">' + CONFIG.deduction.rate + '％</span></div>'
-      + '<div class="r"><span class="k">控除期間</span><span class="v">' + dd.years + '年間</span></div>';
-    $('typeNote').textContent = v.quake === 'cert'
-      ? '旧耐震（1981年以前）でも、耐震基準適合証明書等があれば控除の対象です。築10年以上のため買取再販の枠で計算します。'
-      : v.quake === 'none'
-      ? '耐震基準適合証明書等がないため、住宅ローン控除は適用できません。'
-      : v.dtype === 'resale'
-      ? '買取再販の要件：宅建業者が取得してから2年以内の再販、新築から10年経過、リフォーム費用が売買価額の20％（上限300万円）以上、増改築等工事証明書の発行。すべて満たせば新築と同水準の枠が使えます。'
-      : '新築から10年を経過していない物件は、リフォーム済みでも買取再販住宅に該当しません。一般の既存住宅の枠（認定住宅は3,500万円／子育て世帯等4,500万円）で計算します。';
   }else{
     $('netBlock').hidden = true;
   }
